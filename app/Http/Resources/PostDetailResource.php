@@ -22,8 +22,16 @@ class PostDetailResource extends JsonResource
             'author_id' => $this->author_id,
             // 'author' => $this->author 
             //with eager loading
-            'author' => $this->whenLoaded('author')
-
+            'author' => $this->whenLoaded('author'),
+            'comments' => $this->whenLoaded('comments', function() {
+                return collect($this->comments)->each(function ($comment){
+                    $comment->commentator;
+                    return $comment;
+                });
+            }),
+            'comment_total' => $this->whenLoaded('comments', function(){
+                return count($this->comments);
+            })
         ];
     }
 }

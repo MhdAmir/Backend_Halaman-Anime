@@ -13,10 +13,9 @@ class PostController extends Controller
 {
     public function index()
     {
-        $posts = Post::with('author:id,username')->get();
-
+        $posts = Post::all();
         // return response()->json($posts);
-        return PostDetailResource::collection($posts);
+        return PostDetailResource::collection($posts->loadMissing(['author:id,username', 'comments:id,post_id,user_id,comments_content']));
     }
 
     public function show($id)
@@ -24,7 +23,7 @@ class PostController extends Controller
         // $post = Post::with('author')->findOrFail($id); //all data post
 
         $post = Post::with('author:id,username')->findOrFail($id);
-        return new PostDetailResource($post);
+        return new PostDetailResource($post->loadMissing(['author:id,username', 'comments:id,post_id,user_id,comments_content']));
         // return response()->json(['data' => $post]);
     }
 
