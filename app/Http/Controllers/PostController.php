@@ -6,7 +6,9 @@ use App\Http\Resources\PostResource;
 use App\Http\Resources\PostDetailResource;
 use Illuminate\Http\Request;
 use App\Models\Post;
+use Faker\Core\File;
 use Illuminate\Support\Facades\Auth;
+use Illuminate\Support\Facades\Storage;
 use PharIo\Manifest\Author;
 
 class PostController extends Controller
@@ -34,7 +36,16 @@ class PostController extends Controller
             'description' => 'required',
         ]);
 
+        if($request->file) {
+            //upload file
+            $fileName = $this->generateRandomString();
+            $extension = $request->file->extension();
+
+            Storage::putFileAs('image', $request->file, $fileName.'.'.$extension);
+        }
+        $request['image'] = $fileName.'.'.$extension;
         $request['author_id'] = Auth::user()->id;
+        // dd($request->all());
         //menyimpan data ke database
         $post = Post::create($request->all());
         return new PostDetailResource($post->loadMissing('author:id,username'));
@@ -61,5 +72,15 @@ class PostController extends Controller
         $post->delete();
 
         return new PostDetailResource($post->loadMissing('author:id,username'));
+    }
+
+    function generateRandomString($length = 30) {
+        $characters = '0123456789abcdefghijklmnopqrstuvwxyzABCDEFGHIJKLMNOPQRSTUVWXYZ';
+        $charactersLength = strlen($characters);
+        $randomString = '';
+        for ($i = 0; $i < $length; $i++) {
+            $randomString .= $characters[random_int(0, $charactersLength - 1)];
+        }
+        return $randomString;
     }
 }
