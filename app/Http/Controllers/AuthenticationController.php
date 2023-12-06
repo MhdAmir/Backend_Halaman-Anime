@@ -23,8 +23,34 @@ class AuthenticationController extends Controller
             ]);
         }
         
-        return $user->createToken('user login')->plainTextToken;
+        $token =  $user->createToken('user login')->plainTextToken;
+        return response()->json([
+            'token' => $token
+        ]);
     }
+
+    public function register(Request $request)
+    {
+        $data = $request->validate([
+            'email' => 'required|email:dns|unique:users',
+            'username' => 'required|min:3|max:255|unique:users',
+            'password' => 'required|min:8|max:255',
+            'firstname' => 'required|max:255',
+            'lastname' => 'required|max:255',
+        ]);
+
+        $user = User::create([
+            'email' => $data['email'],
+            'username' => $data['username'],
+            'password' => Hash::make($data['password']),
+            'firstname' => $data['firstname'],
+            'lastname' => $data['lastname'],
+        ]);
+
+        return $user;
+    }
+
+    
     public function logout(Request $request)
     {
         $request->user()->currentAccessToken()->delete();

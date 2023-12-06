@@ -15,7 +15,7 @@ class PostController extends Controller
 {
     public function index()
     {
-        $posts = Post::all();
+        $posts = Post::latest()->get();
         // return response()->json($posts);
         return PostDetailResource::collection($posts->loadMissing(['author:id,username', 'comments:id,post_id,user_id,comments_content']));
     }
@@ -36,20 +36,24 @@ class PostController extends Controller
             'description' => 'required',
         ]);
 
-        if($request->file) {
-            //upload file
+        $image = null;
+        if ($request->hasFile('file')) { // Memeriksa apakah file ada dalam request
+            // upload file
             $fileName = $this->generateRandomString();
-            $extension = $request->file->extension();
-
-            Storage::putFileAs('image', $request->file, $fileName.'.'.$extension);
+            $extension = $request->file('file')->extension();
+            $image = $fileName . '.' . $extension;
+            $request->file('file')->storeAs('public/images', $image); // Simpan file ke direktori yang diinginkan
         }
-        $request['image'] = $fileName.'.'.$extension;
-        $request['author_id'] = Auth::user()->id;
-        // dd($request->all());
-        //menyimpan data ke database
-        $post = Post::create($request->all());
-        return new PostDetailResource($post->loadMissing('author:id,username'));
 
+        $requestData = $request->except('file');
+
+        $requestData['image'] = $image;
+        $requestData['author_id'] = Auth::user()->id;
+
+        $product = Post::create($requestData);
+        return response()->json([
+            'data' => $product
+        ]);
     }
 
     public function update(Request $request, $id)
@@ -63,7 +67,27 @@ class PostController extends Controller
         $post->update($request->all());
 
         return new PostDetailResource($post->loadMissing('author:id,username'));
+    }
 
+    public function showByUser($username)
+    {
+        $posts = Post::latest()->get();
+
+        $data = PostDetailResource::collection($posts->loadMissing(['author:id,username']));
+
+        // dd($data['author']->username);
+        // $data = []; 
+        foreach ($posts as $post) {
+            // $auth_id = $post['author_id'];
+
+            if ($post['username'] == $username) {
+                $data[] = $post;
+            }
+        }
+
+        return response()->json([
+            'data' => $data
+        ]);
     }
 
     public function destroy($id)
@@ -74,7 +98,8 @@ class PostController extends Controller
         return new PostDetailResource($post->loadMissing('author:id,username'));
     }
 
-    function generateRandomString($length = 30) {
+    function generateRandomString($length = 30)
+    {
         $characters = '0123456789abcdefghijklmnopqrstuvwxyzABCDEFGHIJKLMNOPQRSTUVWXYZ';
         $charactersLength = strlen($characters);
         $randomString = '';
